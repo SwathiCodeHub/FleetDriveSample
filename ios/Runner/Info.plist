@@ -57,5 +57,10 @@
         <string>filza</string>
         <string>activator</string>
     </array>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+    <key>NSAllowsArbitraryLoads</key>
+    <true/>
+	</dict>
 </dict>
 </plist>

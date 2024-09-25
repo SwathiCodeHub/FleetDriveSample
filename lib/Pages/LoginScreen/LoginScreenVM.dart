@@ -1,5 +1,5 @@
-import 'package:fleetdrive/BOs/LoginResponse.dart';
-import 'package:fleetdrive/BOs/UserInfo.dart';
+import 'package:fleetdrive/BOs/ResponseBOs/LoginResponse.dart';
+import 'package:fleetdrive/BOs/RequestBOs/UserInfo.dart';
 import 'package:fleetdrive/Helpers/APIHandler.dart';
 import 'package:fleetdrive/Pages/HomeScreen/HomeScreeView.dart';
 import 'package:fleetdrive/Pages/LoginScreen/LoginStateNotifier.dart';

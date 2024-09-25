@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
-import 'package:fleetdrive/BOs/GetCardsResponse.dart';
-import 'package:fleetdrive/BOs/UserEntity.dart';
+import 'package:fleetdrive/BOs/ResponseBOs/GetCardsResponse.dart';
+import 'package:fleetdrive/BOs/RequestBOs/UserEntity.dart';
 import 'package:fleetdrive/Helpers/APIHandler.dart';
 import 'package:fleetdrive/Helpers/ServiceHelper.dart';
 import 'package:fleetdrive/Services/FleepAPIServices/CardListAPI/ICardListAPI.dart';
@@ -19,23 +19,20 @@ class CardsAPI implements ICardsAPI {
       if (networkResponse.content == true) {
         Dio dioInstance = await DioInstanceCreation.dioInstance();
 
-        Map<String, String> encodedJson = userEntity.toJson();
-        print(encodedJson.values);
-        Response retrieveBalanceResponse =
-            await dioInstance.post("getCardList", data: encodedJson);
+        Response retrieveBalanceResponse = await dioInstance
+            .post("customer/getCardList", data: {"entityId": "9677367036"});
 
         GetCardsResponse getCardsResponse =
             GetCardsResponse.fromJson(retrieveBalanceResponse.data);
 
-        print(getCardsResponse.dob);
         if (retrieveBalanceResponse.statusCode == 200) {
           return ServiceResult(
-              content: retrieveBalanceResponse.data,
+              content: getCardsResponse,
               statusCode: retrieveBalanceResponse.statusCode!,
               statusMessage: retrieveBalanceResponse.statusMessage!);
         } else if (retrieveBalanceResponse.statusCode == 402) {
           return ServiceResult(
-              content: retrieveBalanceResponse.data,
+              content: getCardsResponse,
               statusCode: retrieveBalanceResponse.statusCode!,
               statusMessage: retrieveBalanceResponse.statusMessage!);
         } else {

@@ -6,6 +6,7 @@ class PlatformNetworkCheckService implements IPlatformNetworkCheckServices {
   @override
   Future<ServiceResult<bool>> checkNetworkConnectivity() async {
     try {
+      await Future.delayed(Duration(milliseconds: 400));
       bool result = await InternetConnection().hasInternetAccess;
       if (result == true) {
         return ServiceResult(

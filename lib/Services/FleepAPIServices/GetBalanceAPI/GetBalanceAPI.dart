@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
-import 'package:fleetdrive/BOs/UserBalanceResponse.dart';
-import 'package:fleetdrive/BOs/UserEntity.dart';
+import 'package:fleetdrive/BOs/ResponseBOs/UserBalanceResponse.dart';
+import 'package:fleetdrive/BOs/RequestBOs/UserEntity.dart';
 import 'package:fleetdrive/Helpers/APIHandler.dart';
 import 'package:fleetdrive/Helpers/ServiceHelper.dart';
 import 'package:fleetdrive/Services/FleepAPIServices/GetBalanceAPI/IGetBalanceAPI.dart';
@@ -9,7 +9,7 @@ import 'package:get_it/get_it.dart';
 
 class GetBalanceAPI implements IGetBalanceAPI {
   @override
-  Future<ServiceResult<int>> retriveBalance(
+  Future<ServiceResult<List<Balance>>> retriveBalance(
       {required UserEntity userEntity}) async {
     try {
       final IPlatformNetworkCheckServices platformNetworkCheckServices =
@@ -20,23 +20,22 @@ class GetBalanceAPI implements IGetBalanceAPI {
         Dio dioInstance = await DioInstanceCreation.dioInstance();
 
         Map<String, String> encodedJson = userEntity.toJson();
-        print(encodedJson.values);
+
         Response retrieveBalanceResponse =
-            await dioInstance.post("getBalance", data: encodedJson);
-
-        UserBalanceResponse userBalanceResponse =
-            UserBalanceResponse.fromJson(retrieveBalanceResponse.data);
-
-        print(userBalanceResponse.result![0].balance);
+            await dioInstance.post("customer/getBalance", data: encodedJson);
 
         if (retrieveBalanceResponse.statusCode == 200) {
+          List<Balance> balances =
+              (retrieveBalanceResponse.data['result'] as List)
+                  .map((item) => Balance.fromJson(item))
+                  .toList();
           return ServiceResult(
-              content: retrieveBalanceResponse.data,
+              content: balances,
               statusCode: retrieveBalanceResponse.statusCode!,
               statusMessage: retrieveBalanceResponse.statusMessage!);
         } else if (retrieveBalanceResponse.statusCode == 402) {
           return ServiceResult(
-              content: retrieveBalanceResponse.data,
+              content: null,
               statusCode: retrieveBalanceResponse.statusCode!,
               statusMessage: retrieveBalanceResponse.statusMessage!);
         } else {

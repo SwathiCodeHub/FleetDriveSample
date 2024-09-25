@@ -1,66 +1,56 @@
-import 'package:fleetdrive/BOs/UserEntity.dart';
+import 'package:carousel_slider/carousel_slider.dart';
+import 'package:fleetdrive/BOs/RequestBOs/GetVehiclesRequest.dart';
+import 'package:fleetdrive/BOs/RequestBOs/TransactionRequest.dart';
+import 'package:fleetdrive/Helpers/LogicHelper.dart';
 import 'package:fleetdrive/Pages/HomeScreen/DependetViews/AvailableBalanceCards.dart';
-import 'package:fleetdrive/Services/FleepAPIServices/CardListAPI/ICardListAPI.dart';
-import 'package:fleetdrive/Services/FleepAPIServices/GetBalanceAPI/IGetBalanceAPI.dart';
+import 'package:fleetdrive/Pages/HomeScreen/DependetViews/BuildGreetings.dart';
+import 'package:fleetdrive/Pages/HomeScreen/DependetViews/PaymentModesView.dart';
+import 'package:fleetdrive/Pages/HomeScreen/DependetViews/RecentTransactionView.dart';
+import 'package:fleetdrive/Pages/HomeScreen/DependetViews/TitleView.dart';
+import 'package:fleetdrive/Pages/HomeScreen/DependetViews/VehicleCarouselView.dart';
+import 'package:fleetdrive/Pages/HomeScreen/HomeStateNotifierProvider.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:get_it/get_it.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-// class HomeScreenView extends StatefulWidget {
-//   const HomeScreenView({super.key});
-
-//   @override
-//   State<HomeScreenView> createState() => _HomeScreenViewState();
-// }
-
-// class _HomeScreenViewState extends State<HomeScreenView> {
-//   @override
-//   void initState() {
-//     WidgetsBinding.instance.addPostFrameCallback((_) async {
-//       IGetBalanceAPI getBalanceAPI = GetIt.instance<IGetBalanceAPI>();
-//       getBalanceAPI.retriveBalance(
-//           userEntity: UserEntity(entityId: "9677367036"));
-//       ICardsAPI getCards = GetIt.instance<ICardsAPI>();
-//       getCards.retrieveCards(userEntity: UserEntity(entityId: "9677367036"));
-//     });
-
-//     super.initState();
-//   }
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       body: Column(
-//         children: [Text("data")],
-//       ),
-//     );
-//   }
-// }
-
-class HomeScreenView extends StatefulWidget {
+class HomeScreenView extends ConsumerStatefulWidget {
   @override
-  State<HomeScreenView> createState() => _HomeScreenState();
+  _HomeScreenViewState createState() => _HomeScreenViewState();
 }
 
-class _HomeScreenState extends State<HomeScreenView> {
+class _HomeScreenViewState extends ConsumerState<HomeScreenView> {
   @override
   void initState() {
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      IGetBalanceAPI getBalanceAPI = GetIt.instance<IGetBalanceAPI>();
-      getBalanceAPI.retriveBalance(
-          userEntity: UserEntity(entityId: "9677367036"));
-      ICardsAPI getCards = GetIt.instance<ICardsAPI>();
-      getCards.retrieveCards(userEntity: UserEntity(entityId: "9677367036"));
-    });
-
     super.initState();
+    Future.delayed(Duration.zero, () {
+      ref.read(balanceProvider.notifier).fetchBalance('9677367036');
+
+      ref.read(vehicleProvider.notifier).fetchVehicles(VehiclesRequest(
+          entityType: "16",
+          pageNumber: 0,
+          pageSize: "5",
+          parentEntityId: "9677367036")); // Fetch vehicles here
+
+      ref.read(transactionProvider.notifier).fetchTransactions(
+          TransactionRequest(
+              corporate: "LQFLEET",
+              pageNumber: 0,
+              pageSize: "5",
+              parentEntityId: "9677367036"));
+    });
   }
+
+  final CarouselController _carouselController = CarouselController();
 
   @override
   Widget build(BuildContext context) {
+    final balanceState = ref.watch(balanceProvider);
+    final vehicleState = ref.watch(vehicleProvider);
+    final transactionState = ref.watch(transactionProvider);
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -73,26 +63,30 @@ class _HomeScreenState extends State<HomeScreenView> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Greeting Section
-              Text(
-                "Hi, Mohanraj",
-                style: GoogleFonts.poppins(
-                  fontSize: 24.sp,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black,
-                ),
-              ),
-              SizedBox(height: 4.h),
-              Text(
-                "Good to see you!",
-                style: GoogleFonts.poppins(
-                  fontSize: 14.sp,
-                  color: Colors.grey,
-                ),
-              ),
+              BuildGreeting(name: "MohanRaj"),
+
+              // Balance Section with Error Handling
+              balanceState.isLoading
+                  ? Center(child: CircularProgressIndicator())
+                  : balanceState.error != null
+                      ? Center(child: Text("Error: ${balanceState.error}"))
+                      : CarouselSlider(
+                          items: balanceState.data?.map((balance) {
+                            return Padding(
+                              padding: EdgeInsets.only(left: 8.0),
+                              child: AvailableCards(balance: balance),
+                            );
+                          }).toList(),
+                          options: CarouselOptions(
+                            height: 150.h,
+                            viewportFraction: 1,
+                            enableInfiniteScroll: true,
+                            autoPlay: true,
+                          ),
+                        ),
+
               SizedBox(height: 20.h),
 
-              // Balance Card Section
-              AvailableCards(),
               SizedBox(height: 20.h),
 
               // Money Transfer via UPI Section
@@ -105,52 +99,107 @@ class _HomeScreenState extends State<HomeScreenView> {
                 ),
               ),
               SizedBox(height: 8.h),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  _iconButton("Pay UPI ID", Icons.qr_code),
-                  _iconButton("Bank Transfer", Icons.account_balance),
-                  _iconButton("Request Money", Icons.request_page),
-                  _iconButton("Transaction History", Icons.history),
-                ],
-              ),
-              SizedBox(height: 8.h),
-              Text(
-                "My UPI ID: 8946098205.qwallet@liv",
-                style: GoogleFonts.poppins(
-                  fontSize: 12.sp,
-                  color: Colors.blue,
+              Container(
+                height: 110.h,
+                width: 350.w,
+                decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(15.r)),
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 8.w),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      SizedBox(
+                        height: 15.h,
+                      ),
+                      Container(
+                        height: 68.h,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            for (var item in [
+                              {"label": "Pay UPI ID", "icon": Icons.qr_code},
+                              {
+                                "label": "Bank Transfer",
+                                "icon": Icons.account_balance
+                              },
+                              {
+                                "label": "Request Money",
+                                "icon": Icons.request_page
+                              },
+                              {
+                                "label": "Transaction History",
+                                "icon": Icons.history
+                              },
+                            ])
+                              Expanded(
+                                child: PaymentModesView(
+                                    label: item["label"].toString(),
+                                    icon: item["icon"] as IconData),
+                              ),
+                          ],
+                        ),
+                      ),
+                      Divider(
+                        height: 2.h,
+                        color: Colors.grey.shade100,
+                        thickness: 1.1,
+                      ),
+                      SizedBox(height: 6.h),
+                      Text(
+                        "My UPI ID: 8946098205.qwallet@liv",
+                        style: GoogleFonts.poppins(
+                          fontSize: 10.sp,
+                          color: Colors.blue,
+                        ),
+                      ),
+                      SizedBox(height: 2.h),
+                    ],
+                  ),
                 ),
               ),
+
               SizedBox(height: 20.h),
 
               // Vehicle Details Section
-              _sectionTitle("Vehicle Details", "View all"),
+              TitleView(actionText: "View all", title: "Vehicle Details"),
               SizedBox(height: 8.h),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  _vehicleCard("Maruti Suzuki", "TN10 CA5764", true),
-                  _vehicleCard("Honda Civic", "TN10 CA1234", true),
-                ],
-              ),
+
+              vehicleState.isLoading
+                  ? Center(child: CircularProgressIndicator())
+                  : VehicleCarousel(
+                      vehicles: vehicleState.data ?? [],
+                      transactions: transactionState.data ?? []),
               SizedBox(height: 20.h),
 
               // Recent Transactions Section
-              _sectionTitle("Recent Transactions", "View all"),
+              TitleView(title: "Recent Transactions", actionText: "View all"),
               SizedBox(height: 8.h),
-              _transactionItem(
-                title: "Chennai toll -NH 07",
-                date: "Sep 01-2022 - 12:00 AM",
-                amount: "- ₹ 300",
-                isDebit: true,
-              ),
-              _transactionItem(
-                title: "Recharge",
-                date: "Aug 31-2022 - 05:30 PM",
-                amount: "+ ₹ 1000",
-                isDebit: false,
-              ),
+              transactionState.isLoading
+                  ? Center(child: CircularProgressIndicator())
+                  : transactionState.data != null
+                      ? ListView.builder(
+                          shrinkWrap: true,
+                          physics: NeverScrollableScrollPhysics(),
+                          itemCount: transactionState.data!.length,
+                          itemBuilder: (context, index) {
+                            final transaction = transactionState.data![index];
+                            return RecentTransactionView(
+                              title: transaction.otherPartyName!,
+                              date: transaction.created?.formatDate() ??
+                                  0.formatDate(),
+                              amount: transaction.amount.toString(),
+                              isDebit:
+                                  transaction.type == 'DEBIT' ? true : false,
+                            );
+                          },
+                        )
+                      : Center(
+                          child: Text(transactionState.error ??
+                              "No transactions Found"))
             ],
           ),
         ),
@@ -177,146 +226,6 @@ class _HomeScreenState extends State<HomeScreenView> {
           BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
         ],
       ),
-    );
-  }
-
-  Widget _iconButton(String label, IconData icon) {
-    return Column(
-      children: [
-        CircleAvatar(
-          radius: 20.w,
-          backgroundColor: Colors.grey.shade200,
-          child: Icon(icon, color: Colors.purple, size: 20.w),
-        ),
-        SizedBox(height: 4.h),
-        Text(
-          label,
-          textAlign: TextAlign.center,
-          style: GoogleFonts.poppins(fontSize: 10.sp, color: Colors.black),
-        ),
-      ],
-    );
-  }
-
-  Widget _vehicleCard(String name, String number, bool isActive) {
-    return Container(
-      width: 160.w,
-      padding: EdgeInsets.all(12.w),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12.r),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            blurRadius: 8.r,
-            offset: Offset(0, 4.h),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              CircleAvatar(
-                radius: 6.w,
-                backgroundColor: isActive ? Colors.green : Colors.grey,
-              ),
-              SizedBox(width: 4.w),
-              Text(
-                isActive ? "ACTIVE" : "INACTIVE",
-                style: GoogleFonts.poppins(
-                  fontSize: 10.sp,
-                  color: isActive ? Colors.green : Colors.grey,
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 8.h),
-          Text(
-            name,
-            style: GoogleFonts.poppins(
-              fontSize: 14.sp,
-              fontWeight: FontWeight.w600,
-              color: Colors.black,
-            ),
-          ),
-          SizedBox(height: 4.h),
-          Text(
-            number,
-            style: GoogleFonts.poppins(
-              fontSize: 12.sp,
-              color: Colors.grey,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _transactionItem(
-      {required String title,
-      required String date,
-      required String amount,
-      required bool isDebit}) {
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: 8.h),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: GoogleFonts.poppins(
-                  fontSize: 12.sp,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black,
-                ),
-              ),
-              Text(
-                date,
-                style: GoogleFonts.poppins(
-                  fontSize: 10.sp,
-                  color: Colors.grey,
-                ),
-              ),
-            ],
-          ),
-          Text(
-            amount,
-            style: GoogleFonts.poppins(
-              fontSize: 14.sp,
-              fontWeight: FontWeight.w600,
-              color: isDebit ? Colors.red : Colors.green,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _sectionTitle(String title, String actionText) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          title,
-          style: GoogleFonts.poppins(
-            fontSize: 14.sp,
-            fontWeight: FontWeight.w600,
-            color: Colors.black,
-          ),
-        ),
-        Text(
-          actionText,
-          style: GoogleFonts.poppins(
-            fontSize: 12.sp,
-            color: Colors.blue,
-          ),
-        ),
-      ],
     );
   }
 }

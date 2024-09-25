@@ -1,7 +1,7 @@
 class UserBalanceResponse {
   String? status;
   int? statusCode;
-  List<Result>? result;
+  List<Balance>? result;
   dynamic exception;
   dynamic pagination;
 
@@ -16,9 +16,9 @@ class UserBalanceResponse {
     status = json['status'];
     statusCode = json['statusCode'];
     if (json['result'] != null) {
-      result = <Result>[];
+      result = <Balance>[];
       json['result'].forEach((v) {
-        result!.add(new Result.fromJson(v));
+        result!.add(new Balance.fromJson(v));
       });
     }
     exception = json['exception'];
@@ -38,15 +38,15 @@ class UserBalanceResponse {
   }
 }
 
-class Result {
+class Balance {
   String? entityId;
   String? productId;
   String? balance;
   String? lienBalance;
 
-  Result({this.entityId, this.productId, this.balance, this.lienBalance});
+  Balance({this.entityId, this.productId, this.balance, this.lienBalance});
 
-  Result.fromJson(Map<String, dynamic> json) {
+  Balance.fromJson(Map<String, dynamic> json) {
     entityId = json['entityId'];
     productId = json['productId'];
     balance = json['balance'];

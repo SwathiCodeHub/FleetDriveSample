@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
-import 'package:fleetdrive/BOs/LoginResponse.dart';
-import 'package:fleetdrive/BOs/UserInfo.dart';
+import 'package:fleetdrive/BOs/ResponseBOs/LoginResponse.dart';
+import 'package:fleetdrive/BOs/RequestBOs/UserInfo.dart';
 import 'package:fleetdrive/Helpers/APIHandler.dart';
 import 'package:fleetdrive/Helpers/ServiceHelper.dart';
 import 'package:fleetdrive/Services/FleepAPIServices/LoginAPI/ILoginAPI.dart';
@@ -32,18 +32,14 @@ class LoginAPI implements ILoginAPI {
         // Check for the response status code
         switch (loginResponse.statusCode) {
           case 200:
-            ServiceResult<bool> saveAccessTokenResponse =
-                await platformSecureStorageService.saveData(
-                    key: "accessToken",
-                    value: decodedloginResponse.accessToken!);
-            ServiceResult<bool> saveRefreshTokenResponse =
-                await platformSecureStorageService.saveData(
-                    key: "refreshToken",
-                    value: decodedloginResponse.refreshToken!);
-            ServiceResult<bool> saveTenantResponse =
-                await platformSecureStorageService.saveData(
-                    key: "tenant",
-                    value: decodedloginResponse.defaultTenant!);
+            await platformSecureStorageService.saveData(
+                key: "accessToken", value: decodedloginResponse.accessToken!);
+
+            await platformSecureStorageService.saveData(
+                key: "refreshToken", value: decodedloginResponse.refreshToken!);
+
+            await platformSecureStorageService.saveData(
+                key: "tenant", value: decodedloginResponse.defaultTenant!);
             return ServiceResult(
               content: LoginResponse.fromJson(loginResponse.data),
               statusCode: loginResponse.data['statusCode'],

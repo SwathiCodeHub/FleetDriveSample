@@ -15,32 +15,31 @@ class DeviceRootCheckService implements IDeviceRootCheckService {
       // Get device information for additional checks
       final deviceData = await _deviceInfo.deviceInfo;
 
-      // Add additional checks based on the device data if needed
+      // Additional checks for Android devices
       if (deviceData is AndroidDeviceInfo) {
-        // Example: Check if the device is an emulator
-        isRooted = isRooted || !deviceData.isPhysicalDevice;
+        isRooted = isRooted ||
+            !deviceData.isPhysicalDevice; // Check if the device is an emulator
       }
 
-      if (isRooted) {
-        return ServiceResult(
-          content: true,
-          statusCode: 200,
-          statusMessage: "Device is rooted",
-        );
-      } else {
-        return ServiceResult(
-          content: false,
-          statusCode: 200,
-          statusMessage: "Device is not rooted",
-        );
-      }
+      return _buildServiceResult(isRooted);
     } catch (e) {
-      // Handle any errors during the root check
-      return ServiceResult(
-        content: false,
-        statusCode: 500,
-        statusMessage: "System Exception: Unable to check root status",
-      );
+      return _buildErrorResult();
     }
+  }
+
+  ServiceResult<bool> _buildServiceResult(bool isRooted) {
+    return ServiceResult(
+      content: isRooted,
+      statusCode: 200,
+      statusMessage: isRooted ? "Device is rooted" : "Device is not rooted",
+    );
+  }
+
+  ServiceResult<bool> _buildErrorResult() {
+    return ServiceResult(
+      content: false,
+      statusCode: 500,
+      statusMessage: "System Exception: Unable to check root status",
+    );
   }
 }

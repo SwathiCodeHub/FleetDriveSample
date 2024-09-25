@@ -1,162 +1,89 @@
+import 'dart:io';
 import 'package:dio/dio.dart';
-import 'package:fleetdrive/Helpers/APIHandler.dart';
+import 'package:dio/io.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:fleetdrive/Services/PlatformServices/PlatformSecureStorageService/IPlatformSecureStorageService.dart';
 import 'package:get_it/get_it.dart';
 
 class DioInstanceCreation {
   static Dio loginDioInstance() {
+    return Dio(BaseOptions(
+      baseUrl:
+          'https://uat-fleetdrive.m2pfintech.com/lq-middleware/lqfleet/customer/',
+      headers: {
+        "platform": "android",
+        "reqid": "5521059d12a4330d",
+      },
+    ));
+  }
+
+  // Method to create a Dio instance with SSL pinning
+  static Future<Dio> createDioInstance() async {
+    // Load the SSL certificate from assets
+    final ByteData data = await rootBundle.load('assets/sslp_certificate.crt');
+    final List<int> bytes = data.buffer.asUint8List();
+
+    // Create a SecurityContext and set the loaded certificate
+    final SecurityContext securityContext = SecurityContext();
+    securityContext.setTrustedCertificatesBytes(bytes);
+
+    // Create a Dio instance with SSL pinning
     Dio dio = Dio(BaseOptions(
-        baseUrl:
-            'https://uat-fleetdrive.m2pfintech.com/lq-middleware/lqfleet/customer/',
-        headers: {
-          "platform": "android",
-          "reqid": "5521059d12a4330d",
-        }));
+      baseUrl: 'https://uat-fleetdrive.m2pfintech.com/lq-middleware/lqfleet/',
+      headers: {
+        "platform": "android",
+        "reqid": "5521059d12a4330d",
+      },
+    ));
+
+    // Override the Dio HttpClientAdapter to use the custom HttpClient
+    // ignore: deprecated_member_use
+    (dio.httpClientAdapter as IOHttpClientAdapter).onHttpClientCreate =
+        (HttpClient client) {
+      client.badCertificateCallback =
+          (X509Certificate cert, String host, int port) {
+        // Verify the server certificate against your pinned certificate
+        return cert.pem == String.fromCharCodes(bytes);
+      };
+    };
+
     return dio;
   }
 
+  // Method to create a Dio instance with authentication headers
   static Future<Dio> dioInstance() async {
     final IPlatformSecureStorageService platformSecureStorageService =
         GetIt.instance<IPlatformSecureStorageService>();
-    ServiceResult<String?> retrieveAccessToken =
+
+    // Retrieve tokens and tenant information
+    final accessTokenResult =
         await platformSecureStorageService.retrieveData(key: "accessToken");
-
-    print("{retrivedAxccessToken: ${retrieveAccessToken.content}");
-
-    ServiceResult<String?> retrieveRefreshToken =
+    final refreshTokenResult =
         await platformSecureStorageService.retrieveData(key: "refreshToken");
-
-    ServiceResult<String?> retrieveTenant =
+    final tenantResult =
         await platformSecureStorageService.retrieveData(key: "tenant");
 
-    if (retrieveRefreshToken.content == retrieveAccessToken.content) {
-      print("Same");
+    // Log token retrieval results
+    debugPrint("Retrieved Access Token: ${accessTokenResult.content}");
+    debugPrint("Retrieved Refresh Token: ${refreshTokenResult.content}");
+
+    if (accessTokenResult.content == null ||
+        refreshTokenResult.content == null ||
+        tenantResult.content == null) {
+      throw Exception("Failed to retrieve necessary authentication data.");
     }
 
-    Dio dio = Dio(BaseOptions(
-        baseUrl:
-            'https://uat-fleetdrive.m2pfintech.com/lq-middleware/lqfleet/customer/',
-        headers: {
-          "platform": "android",
-          "reqid": "5521059d12a4330d",
-          "accesstoken": "Bearer ${retrieveAccessToken.content}",
-          "refreshtoken": "Bearer ${retrieveRefreshToken.content}",
-          "tenant": retrieveTenant.content
-        }));
+    // Create a Dio instance with SSL pinning
+    Dio dio = await createDioInstance();
+
+    // Set authentication headers
+    dio.options.headers.addAll({
+      "accesstoken": "Bearer ${accessTokenResult.content}",
+      "refreshtoken": "Bearer ${refreshTokenResult.content}",
+      "tenant": tenantResult.content,
+    });
+
     return dio;
   }
 }
-
-  // static String? isTokenExpired(
-  //     {required String accessToken, required String refreshToken}) {
-  //   if (accessToken != null || accessToken.isNotEmpty) {
-  //     bool accessTokenExpirationResult = JwtDecoder.isExpired(accessToken);
-  //     if (accessTokenExpirationResult == false) {
-  //       bool refreshTokenExpirationResult = JwtDecoder.isExpired(refreshToken);
-  //       if (refreshTokenExpirationResult == false) {
-  //         return null;
-  //       } else {
-  //         return refreshToken;
-  //       }
-  //     } else {
-  //       return accessToken;
-  //     }
-  //   }
-  //   return null;
-  // }
-  // static Future<Dio> dioInstance() async {
-  //   try {
-  //     final IPlatformSecureStorageService platformSecureStorageService =
-  //         GetIt.instance<IPlatformSecureStorageService>();
-
-  //     // Retrieve access token
-  //     ServiceResult<String?> retrieveAccessToken =
-  //         await platformSecureStorageService.retrieveData(key: "accessToken");
-  //     print("{retrievedAccessToken: ${retrieveAccessToken.content}");
-
-  //     // Retrieve refresh token
-  //     ServiceResult<String?> retrieveRefreshToken =
-  //         await platformSecureStorageService.retrieveData(key: "refreshToken");
-  //     print("{retrievedRefreshToken: ${retrieveRefreshToken.content}");
-
-  //     // Retrieve tenant
-  //     ServiceResult<String?> retrieveTenant =
-  //         await platformSecureStorageService.retrieveData(key: "tenant");
-  //     print("{retrievedTenant: ${retrieveTenant.content}");
-
-  //     if (retrieveAccessToken.content != null &&
-  //         retrieveRefreshToken.content != null) {
-  //       // Check if tokens are expired
-  //       String? tokenDecider = isTokenExpired(
-  //         accessToken: retrieveAccessToken.content!,
-  //         refreshToken: retrieveRefreshToken.content!,
-  //       );
-
-  //       // If tokenDecider is null, both tokens are valid
-  //       if (tokenDecider == null) {
-  //         return _createDioInstance(retrieveAccessToken.content!,
-  //             retrieveRefreshToken.content!, retrieveTenant.content!);
-  //       } else {
-  //         // Token decider contains the valid token; check which one it is
-  //         if (tokenDecider == retrieveAccessToken.content) {
-  //           // Return Dio instance with accessToken
-  //           return _createDioInstance(retrieveAccessToken.content!,
-  //               retrieveRefreshToken.content!, retrieveTenant.content!);
-  //         } else if (tokenDecider == retrieveRefreshToken.content) {
-  //           // Here, you should refresh the access token using the refresh token
-  //           // Implement the logic for refreshing access token if required.
-  //           // For now, we'll just use the refresh token directly.
-  //           return _createDioInstance(retrieveAccessToken.content!,
-  //               retrieveRefreshToken.content!, retrieveTenant.content!);
-  //         } else {
-  //           // If both tokens are expired, throw an error
-  //           throw Exception("Both access token and refresh token are expired.");
-  //         }
-  //       }
-  //     } else {
-  //       // If tokens are missing, throw an error
-  //       throw Exception("Access token or refresh token is missing.");
-  //     }
-  //   } catch (e) {
-  //     print("Error in dioInstance: $e");
-  //     rethrow;
-  //   }
-  // }
-
-  // static Dio _createDioInstance(
-  //     String accessToken, String refreshToken, String tenant) {
-  //   Dio dio = Dio(BaseOptions(
-  //     baseUrl:
-  //         'https://uat-fleetdrive.m2pfintech.com/lq-middleware/lqfleet/customer/',
-  //     headers: {
-  //       "platform": "android",
-  //       "reqid": "5521059d12a4330d",
-  //       "accesstoken": "Bearer $accessToken", // Use accessToken
-  //       "refreshtoken":
-  //           "Bearer $refreshToken", // Include refreshToken in header as well
-  //       "tenant": tenant
-  //     },
-  //   ));
-  //   return dio;
-  // }
-
-  // static String? isTokenExpired(
-  //     {required String accessToken, required String refreshToken}) {
-  //   print(accessToken);
-  //   bool accessTokenExpirationResult = JwtDecoder.isExpired(accessToken);
-  //   if (!accessTokenExpirationResult) {
-  //     // Access token is not expired
-  //     return null;
-  //   } else {
-  //     // Access token is expired, check refresh token
-  //     bool refreshTokenExpirationResult = JwtDecoder.isExpired(refreshToken);
-  //     if (!refreshTokenExpirationResult) {
-  //       // Refresh token is not expired, can be used to refresh access token
-  //       return refreshToken;
-  //     } else {
-  //       // Both tokens are expired
-  //       return accessToken; // Indicate both tokens are expired
-  //     }
-  //   }
-  // }
-// }

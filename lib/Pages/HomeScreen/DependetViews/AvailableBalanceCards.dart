@@ -1,9 +1,12 @@
+import 'package:fleetdrive/BOs/ResponseBOs/UserBalanceResponse.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class AvailableCards extends StatelessWidget {
-  const AvailableCards({super.key});
+  final Balance balance;
+
+  const AvailableCards({required this.balance, super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -25,7 +28,7 @@ class AvailableCards extends StatelessWidget {
           ),
           SizedBox(height: 8.h),
           Text(
-            "₹ 200.00",
+            "₹ ${balance.balance}",
             style: GoogleFonts.poppins(
               fontSize: 20.sp,
               fontWeight: FontWeight.w600,

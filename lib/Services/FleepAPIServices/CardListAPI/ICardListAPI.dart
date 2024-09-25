@@ -1,5 +1,5 @@
-import 'package:fleetdrive/BOs/GetCardsResponse.dart';
-import 'package:fleetdrive/BOs/UserEntity.dart';
+import 'package:fleetdrive/BOs/ResponseBOs/GetCardsResponse.dart';
+import 'package:fleetdrive/BOs/RequestBOs/UserEntity.dart';
 import 'package:fleetdrive/Helpers/APIHandler.dart';
 
 abstract class ICardsAPI {
